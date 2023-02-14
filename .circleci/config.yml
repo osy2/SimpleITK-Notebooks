@@ -21,13 +21,22 @@ executors:
 
 jobs:
   lint:
-    docker:
-      - image: circleci/python:3.9.7
+    machine:
+      image: ubuntu-2004:current
     steps:
       - checkout
       - run:
+          name: Set up Python 3.9
+          command: |
+            sudo apt-get update
+            sudo apt-get install python3.9
+            sudo apt install python3.9-venv
+            python3.9 -m venv env
+            source env/bin/activate
+      - run:
           name: Install and run black for notebooks
           command: |
+            source env/bin/activate
             pip install --upgrade pip
             pip install black[jupyter]
             black --check --diff --verbose Python
@@ -48,12 +57,18 @@ jobs:
           command: |
             if [ "$RUNNER_OS" == "macos" ]; then
               brew install pyenv
-            fi
-            if [ "$RUNNER_OS" == "macos" || "$RUNNER_OS" == "linux" ]; then
               eval "$(pyenv init -)"
               pyenv install << parameters.python-version >> || echo "Python version is already installed."
               pyenv global << parameters.python-version >>
               export PATH="$HOME/.pyenv/versions/<< parameters.python-version >>/bin:$PATH"
+              echo -e '\neval "$(pyenv init -)"' >> ~/.bash_profile
+              source ~/.bash_profile
+            elif [ "$RUNNER_OS" == "linux" ]; then
+              pyenv install << parameters.python-version >> || echo "Python version is already installed."
+              pyenv global << parameters.python-version >>
+              export PATH="$HOME/.pyenv/versions/<< parameters.python-version >>/bin:$PATH"
+              echo -e '\neval "$(pyenv init -)"' >> ~/.bash_profile
+              source ~/.bash_profile
             elif [ "$RUNNER_OS" == "windows" ]; then
               choco install python --version=<< parameters.python-version >> --allow-downgrade -y
               python -m pip install --upgrade pip
@@ -91,7 +106,6 @@ jobs:
           paths:
             - Data
           key: notebook-data-${{ checksum 'Data/manifest.json' }}
-
 workflows:
   test_notebooks:
     jobs:
