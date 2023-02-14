@@ -93,7 +93,7 @@ jobs:
           paths:
             - Data
           key: notebook-data-${{ checksum 'Data/manifest.json' }}
-          
+
 workflows:
   test_notebooks:
     jobs:
